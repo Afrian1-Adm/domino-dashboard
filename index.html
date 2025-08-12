@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Dominó — Club</title>
+  <style>
+    :root {
+      /* Paleta clara inspirada en el sitio de referencia */
+      --bg: #f6f8fa;           /* fondo general */
+      --panel: #ffffff;        /* tarjetas/paneles */
+      --muted: #57606a;        /* texto secundario */
+      --text: #24292f;         /* texto principal */
+      --accent: #0969da;       /* azul primario */
+      --ok: #1a7f37;           /* verde éxito */
+      --warn: #9a6700;         /* amarillo aviso */
+      --bad: #d1242f;          /* rojo error */
+      --chip: #f2f8ff;         /* fondo chips */
+      --border: #d0d7de;       /* bordes suaves */
+      --shadow: 0 3px 12px rgba(27,31,36,.08);
+      --radius: 12px;
+    }
+    html, body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background: var(--bg); color: var(--text); }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu; background: linear-gradient(180deg, #0b1020, #0b1020 70%, #0e142b); color: var(--text); }
+    a { color: var(--accent); text-decoration: none; }
+
+    header { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: rgba(255,255,255,.9); backdrop-filter: blur(6px); border-bottom: 1px solid var(--border); }
+    header h1 { font-size: 18px; letter-spacing: .5px; margin: 0; font-weight: 650; }
+    header .tag { font-size: 12px; color: var(--muted); }
+
+    .container { max-width: 1200px; margin: 20px auto 60px; padding: 0 16px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tab-btn { background: var(--chip); border: 1px solid #25315c; color: var(--text); padding: 10px 14px; border-radius: 999px; cursor: pointer; font-weight: 600; }
+    .tab-btn.active { background: var(--accent); color: #0b1020; border-color: transparent; }
+
+    /* Panels */
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; }
+    .panel h2 { margin: 0 0 12px; font-size: 18px; }
+    .panel h3 { margin: 18px 0 8px; font-size: 15px; color: var(--muted); font-weight: 600; }
+
+    .grid { display: grid; gap: 12px; }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    @media (max-width: 900px) { .grid.cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 640px) {
+      .grid.cols-2, .grid.cols-3 { grid-template-columns: 1fr; }
+      header { position: static; }
+    }
+
+    .stat { background: #ffffff; border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .stat .label { color: var(--muted); font-size: 12px; }
+    .stat .value { font-size: 22px; font-weight: 700; margin-top: 6px; }
+
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    .controls .field { display: flex; flex-direction: column; gap: 6px; }
+    .controls label { font-size: 12px; color: var(--muted); }
+    .controls input, .controls select, .controls button, textarea { background: #fff; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; outline: none; }
+    .controls input[type="date"] { padding: 9px 12px; }
+    .controls button { cursor: pointer; font-weight: 650; }
+    .controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .controls button.ghost { background: #fff; border-color: var(--border); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    thead th { color: var(--muted); font-weight: 600; position: sticky; top: 52px; background: #ffffff; z-index: 3; border-bottom: 1px solid var(--border); }
+    tbody tr:hover { background: #0f1633; }
+    .chip { display: inline-block; padding: 2px 8px; border: 1px solid #b6e3ff; background: var(--chip); border-radius: 999px; font-size: 12px; color: #0969da; }
+    .winner { color: var(--ok); font-weight: 700; }
+    .loser { color: var(--bad); }
+
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > * { flex: 1; }
+
+    .right { text-align: right; }
+
+    .muted { color: var(--muted); }
+
+    .hidden { display: none !important; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.5); z-index: 100; }
+    .modal.open { display: flex; }
+    .modal-card { width: min(860px, 92vw); max-height: 88vh; overflow: auto; padding: 18px; background: var(--panel); border: 1px solid #1e274a; border-radius: 16px; box-shadow: var(--shadow); }
+    .modal-card h3 { margin-top: 0; }
+    .modal-close { float: right; font-weight: 700; cursor: pointer; }
+
+    .note { font-size: 12px; color: var(--muted); }
+    .danger { color: var(--bad); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏆 Dashboard Dominó – <span class="tag" id="clubNameTag">Tu Club</span></h1>
+    <div class="controls">
+      <button id="exportCsvBtn" class="ghost">Exportar CSV</button>
+      <button id="backupBtn" class="ghost">Descargar respaldo (.json)</button>
+      <label class="field">
+        <input type="file" id="importFile" accept=".csv,.json" class="hidden" />
+        <button id="importBtn" class="ghost">Importar CSV/JSON</button>
+      </label>
+      <button id="resetBtn" class="ghost danger">Borrar todo</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="historial">Historial</button>
+      <button class="tab-btn" data-tab="partida">Nueva Partida</button>
+      <button class="tab-btn" data-tab="ranking">Clasificatoria</button>
+      <button class="tab-btn" data-tab="jugadores">Normalización de Nombres</button>
+      <button class="tab-btn" data-tab="ayuda">Ayuda</button>
+    </div>
+
+    <!-- HISTORIAL -->
+    <section id="historial" class="panel">
+      <h2>Historial de Partidas</h2>
+      <div class="grid cols-4">
+        <div class="stat"><div class="label">Total partidas</div><div id="statMatches" class="value">0</div></div>
+        <div class="stat"><div class="label">Lisas</div><div id="statLisas" class="value">0</div></div>
+        <div class="stat"><div class="label">Puntos prom.</div><div id="statAvgPts" class="value">0</div></div>
+        <div class="stat"><div class="label">Rondas prom.</div><div id="statAvgRds" class="value">0</div></div>
+      </div>
+
+      <div class="controls" style="margin:12px 0 8px">
+        <div class="field"><label>Desde</label><input type="date" id="fDesde"></div>
+        <div class="field"><label>Hasta</label><input type="date" id="fHasta"></div>
+        <div class="field"><label>Jugador</label><input type="text" id="fJugador" placeholder="Nombre o alias"></div>
+        <div class="field"><label>Modalidad</label>
+          <select id="fModalidad">
+            <option value="">Todas</option>
+            <option>100</option>
+            <option>150</option>
+            <option>200</option>
+          </select>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="fLisas"> Solo lisas</label>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <button id="limpiarFiltros" class="ghost">Limpiar filtros</button>
+        </div>
+      </div>
+
+      <div class="panel" style="padding:0">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jugador</th>
+              <th>Victorias</th>
+              <th>Derrotas</th>
+              <th>Total</th>
+              <th>Eficiencia %</th>
+            </tr>
+          </thead>
+          <tbody id="rankingBody">
+            <tr><td colspan="8" class="muted">Sin datos.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- JUGADORES / ALIASES -->
+    <section id="jugadores" class="panel hidden">
+      <h2>Normalización de Nombres</h2>
+      <p class="note">Usa esto para unificar variantes: por ejemplo, <em>"Yeifry"</em> y <em>"Yeifrin"</em> → <strong>"Yeifrin"</strong>. Al cargar datos, todos los alias se convierten al nombre canónico.</p>
+      <div class="controls" style="margin:12px 0">
+        <input id="aliasKey" placeholder="Alias (como lo escriben)">
+        <span style="align-self:center">→</span>
+        <input id="aliasValue" placeholder="Nombre canónico">
+        <button id="addAlias" class="ghost">Agregar</button>
+        <button id="clearAliases" class="ghost danger">Borrar alias</button>
+      </div>
+      <div class="panel" style="padding:0">
+        <table>
+          <thead><tr><th>Alias</th><th>Se convertirá a</th><th></th></tr></thead>
+        <tbody id="aliasBody"></tbody>
+        </table>
+      </div>
+      <p class="note">Ejemplos precargados (puedes borrarlos): "Solimanpapa" → "PapSoliman"; "Ray" → "Rayjan"; "Deivy (segundo)" → "Deivy"; "Yeifry" → "Yeifrin".</p>
+    </section>
+
+    <!-- AYUDA -->
+    <section id="ayuda" class="panel hidden">
+      <h2>Cómo usarlo (rápido)</h2>
+      <ol>
+        <li>Ve a la pestaña <strong>Nueva Partida</strong>, escribe jugadores y agrega rondas (puntos para A y B). Marca <em>LISA</em> si aplica.</li>
+        <li>Cuando un equipo alcance el objetivo (100/150/200), pulsa <strong>Finalizar partida</strong>. Se guardará en el historial.</li>
+        <li>Usa <strong>Historial</strong> para filtrar por fechas, jugador, modalidad o lisas. Ahí puedes ver el detalle y exportar.</li>
+        <li>En <strong>Ranking</strong> verás victorias, derrotas y % de victoria por jugador. Puedes exigir un mínimo de rondas.</li>
+        <li>En <strong>Normalización</strong> unifica variantes de nombres antes o después de importar datos.</li>
+        <li>Todo se guarda en tu navegador (localStorage). Haz <strong>Descargar respaldo (.json)</strong> periódicamente.</li>
+      </ol>
+      <p class="note">Sugerencia: Crea un repositorio en GitHub con este archivo como <code>index.html</code> y habilita GitHub Pages. Tu url quedará como <code>https://TU_USUARIO.github.io/NOMBRE_REPO/</code>.</p>
+    </section>
+  </div>
+
+  <!-- Modal de detalle -->
+  <div class="modal" id="matchModal">
+    <div class="modal-card">
+      <span class="modal-close" id="modalClose">✕</span>
+      <h3>Detalles de la Partida</h3>
+      <div id="modalContent" class="muted">Cargando…</div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Persistencia ----
+    const STORAGE = {
+      matches: 'domino_matches_v1',
+      aliases: 'domino_aliases_v1',
+      club: 'domino_clubname_v1'
+    };
+
+    // Alias por defecto (editable)
+    const DEFAULT_ALIASES = {
+      'Solimanpapa': 'PapSoliman',
+      'PapSoliman': 'PapSoliman',
+      'Ray': 'Rayjan',
+      'Rayjan': 'Rayjan',
+      'Deivy (segundo)': 'Deivy',
+      'deivy': 'Deivy',
+      'Yeifry': 'Yeifrin',
+      'Yeifrin': 'Yeifrin'
+    };
+
+    // Estado en memoria
+    let matches = loadJSON(STORAGE.matches, []);
+    let aliases = loadJSON(STORAGE.aliases, DEFAULT_ALIASES);
+    let clubName = localStorage.getItem(STORAGE.club) || 'Tu Club';
+
+    document.getElementById('clubNameTag').textContent = clubName;
+
+    // Utilidades
+    function save() { localStorage.setItem(STORAGE.matches, JSON.stringify(matches)); }
+    function loadJSON(key, fallback) {
+      try { const j = localStorage.getItem(key); return j ? JSON.parse(j) : fallback; } catch { return fallback; }
+    }
+    function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+    function canonName(name) {
+      if (!name) return '';
+      const n = name.trim();
+      // Igualar por mayúsculas/minúsculas y espacios
+      const key = Object.keys(aliases).find(k => k.toLowerCase() === n.toLowerCase());
+      return (aliases[key || n] || n).trim();
+    }
+
+    function fmtDate(d) { try { return new Date(d).toISOString().slice(0,10); } catch { return d || ''; } }
+
+    function calcTotals(rounds) {
+      const totalA = rounds.reduce((s,r) => s + (Number(r.a)||0), 0);
+      const totalB = rounds.reduce((s,r) => s + (Number(r.b)||0), 0);
+      return { totalA, totalB };
+    }
+
+    function matchWinner(match) {
+      const { totalA, totalB } = calcTotals(match.rounds||[]);
+      if (totalA === totalB) return '-';
+      return totalA > totalB ? 'A' : 'B';
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(btn.dataset.tab).classList.remove('hidden');
+      if (btn.dataset.tab === 'historial') renderHistorial();
+      if (btn.dataset.tab === 'ranking') renderRanking();
+      if (btn.dataset.tab === 'jugadores') renderAliases();
+    }));
+
+    // ------- HISTORIAL -------
+    const tbody = document.getElementById('historialBody');
+    const statMatches = document.getElementById('statMatches');
+    const statLisas = document.getElementById('statLisas');
+    const statAvgPts = document.getElementById('statAvgPts');
+    const statAvgRds = document.getElementById('statAvgRds');
+
+    function applyFilters(list) {
+      const d1 = document.getElementById('fDesde').value;
+      const d2 = document.getElementById('fHasta').value;
+      const jug = document.getElementById('fJugador').value.trim();
+      const mod = document.getElementById('fModalidad').value;
+      const onlyLisa = document.getElementById('fLisas').checked;
+
+      return list.filter(m => {
+        if (d1 && fmtDate(m.date) < d1) return false;
+        if (d2 && fmtDate(m.date) > d2) return false;
+        if (mod && String(m.modality) !== String(mod)) return false;
+        if (onlyLisa && !m.lisa) return false;
+        if (jug) {
+          const j = canonName(jug).toLowerCase();
+          const inA = (m.teamA||[]).some(p => canonName(p).toLowerCase().includes(j));
+          const inB = (m.teamB||[]).some(p => canonName(p).toLowerCase().includes(j));
+          if (!inA && !inB) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderHistorial() {
+      const list = applyFilters(matches);
+      tbody.innerHTML = '';
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="muted">No se encontraron partidas con los filtros aplicados.</td></tr>';
+      }
+      let sumRondas = 0, sumPts = 0, lisas = 0;
+      list.forEach(m => {
+        const { totalA, totalB } = calcTotals(m.rounds||[]);
+        sumRondas += m.rounds?.length || 0;
+        sumPts += totalA + totalB;
+        if (m.lisa) lisas++;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${fmtDate(m.date)}</td>
+          <td>${m.table || '-'}</td>
+          <td><span class="chip">${m.modality}</span></td>
+          <td>${(m.teamA||[]).map(canonName).join(' & ')}</td>
+          <td>${totalA}</td>
+          <td>${(m.teamB||[]).map(canonName).join(' & ')}</td>
+          <td>${totalB}</td>
+          <td class="${matchWinner(m)==='A'?'winner':'loser'}">${matchWinner(m)}</td>
+          <td>${m.lisa? 'Sí':'No'}</td>
+          <td class="right">
+            <button class="ghost" data-view="${m.id}">Ver</button>
+          </td>
+        `;
+        tr.querySelector('[data-view]')?.addEventListener('click', () => openMatchModal(m.id));
+        tbody.appendChild(tr);
+      });
+      statMatches.textContent = String(list.length);
+      statLisas.textContent = String(lisas);
+      statAvgRds.textContent = list.length ? (sumRondas/list.length).toFixed(1) : '0';
+      statAvgPts.textContent = list.length ? (sumPts/list.length).toFixed(1) : '0';
+    }
+
+    document.getElementById('limpiarFiltros').addEventListener('click', () => {
+      document.getElementById('fDesde').value = '';
+      document.getElementById('fHasta').value = '';
+      document.getElementById('fJugador').value = '';
+      document.getElementById('fModalidad').value = '';
+      document.getElementById('fLisas').checked = false;
+      renderHistorial();
+    });
+
+    // ------- MODAL DETALLE PARTIDA -------
+    const modal = document.getElementById('matchModal');
+    const modalContent = document.getElementById('modalContent');
+    document.getElementById('modalClose').addEventListener('click', () => modal.classList.remove('open'));
+
+    function openMatchModal(id) {
+      const m = matches.find(x => x.id === id);
+      if (!m) return;
+      const { totalA, totalB } = calcTotals(m.rounds || []);
+      modalContent.innerHTML = `
+        <div class="grid cols-3">
+          <div><div class="muted">Fecha</div><div>${fmtDate(m.date)}</div></div>
+          <div><div class="muted">Mesa</div><div>${m.table||'-'}</div></div>
+          <div><div class="muted">Modalidad</div><div>${m.modality}</div></div>
+        </div>
+        <h3>Equipo A</h3>
+        <div>${(m.teamA||[]).map(canonName).join(' & ')}</div>
+        <div class="muted">${totalA} puntos totales</div>
+        <h3>Equipo B</h3>
+        <div>${(m.teamB||[]).map(canonName).join(' & ')}</div>
+        <div class="muted">${totalB} puntos totales</div>
+        <div class="grid cols-3" style="margin-top:10px">
+          <div><div class="muted">Ganador</div><div>${matchWinner(m)}</div></div>
+          <div><div class="muted">Lisa</div><div>${m.lisa? 'Sí':'No'}</div></div>
+          <div><div class="muted">Duración</div><div>${m.duration || '-'}</div></div>
+        </div>
+        <h3>Desarrollo de la Partida</h3>
+        <table style="width:100%">
+          <thead><tr><th>Ronda</th><th>Equipo A</th><th>Equipo B</th><th>Acumulado</th></tr></thead>
+          <tbody>
+            ${(() => {
+              let accA=0, accB=0; let rows='';
+              (m.rounds||[]).forEach((r,i)=>{ accA+=Number(r.a)||0; accB+=Number(r.b)||0; rows+=`<tr><td>${i+1}</td><td>${r.a}</td><td>${r.b}</td><td>${accA} - ${accB}</td></tr>`; });
+              return rows || '<tr><td colspan="4" class="muted">(Sin rondas registradas)</td></tr>';
+            })()}
+          </tbody>
+        </table>
+      `;
+      modal.classList.add('open');
+    }
+
+    // ------- NUEVA PARTIDA -------
+    const pFecha = document.getElementById('pFecha');
+    const pMesa = document.getElementById('pMesa');
+    const pModalidad = document.getElementById('pModalidad');
+    const pLisa = document.getElementById('pLisa');
+    const rondasBody = document.getElementById('rondasBody');
+    const totalA = document.getElementById('totalA');
+    const totalB = document.getElementById('totalB');
+    const objetivo = document.getElementById('objetivo');
+    const estadoPartida = document.getElementById('estadoPartida');
+    const inputs = { a1:document.getElementById('a1'), a2:document.getElementById('a2'), b1:document.getElementById('b1'), b2:document.getElementById('b2') };
+
+    function resetPartida() {
+      pFecha.value = fmtDate(new Date());
+      pMesa.value = '';
+      pModalidad.value = '100';
+      objetivo.textContent = '100';
+      pLisa.checked = false;
+      inputs.a1.value = inputs.a2.value = inputs.b1.value = inputs.b2.value = '';
+      rondasBody.innerHTML = '';
+      updateTotals();
+      estadoPartida.textContent = 'En curso';
+    }
+
+    function addRondaRow(a=0,b=0) {
+      const tr = document.createElement('tr');
+      const idx = rondasBody.children.length + 1;
+      tr.innerHTML = `
+        <td>${idx}</td>
+        <td><input type="number" min="0" value="${a}" style="width:100px"></td>
+        <td><input type="number" min="0" value="${b}" style="width:100px"></td>
+        <td><button class="ghost">Quitar</button></td>
+      `;
+      tr.querySelector('button').addEventListener('click', () => { tr.remove(); renumberRows(); updateTotals(); });
+      tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateTotals));
+      rondasBody.appendChild(tr);
+      updateTotals();
+    }
+
+    function renumberRows() {
+      [...rondasBody.children].forEach((tr,i)=> tr.firstElementChild.textContent = i+1);
+    }
+
+    function collectRounds() {
+      return [...rondasBody.querySelectorAll('tr')].map(tr => {
+        const [a,b] = tr.querySelectorAll('input');
+        return { a: Number(a.value)||0, b: Number(b.value)||0 };
+      });
+    }
+
+    function updateTotals() {
+      const { totalA:tA, totalB:tB } = calcTotals(collectRounds());
+      totalA.textContent = tA; totalB.textContent = tB;
+      objetivo.textContent = pModalidad.value;
+      const objetivoNum = Number(pModalidad.value);
+      if (tA >= objetivoNum || tB >= objetivoNum) {
+        estadoPartida.textContent = `Finalizada (ganador: ${tA>tB? 'A' : 'B'})`;
+      } else {
+        estadoPartida.textContent = 'En curso';
+      }
+    }
+
+    document.getElementById('agregarRonda').addEventListener('click', () => addRondaRow());
+    document.getElementById('nuevaBtn').addEventListener('click', resetPartida);
+    pModalidad.addEventListener('change', updateTotals);
+
+    document.getElementById('finalizarBtn').addEventListener('click', () => {
+      const teamA = [canonName(inputs.a1.value), canonName(inputs.a2.value)].filter(Boolean);
+      const teamB = [canonName(inputs.b1.value), canonName(inputs.b2.value)].filter(Boolean);
+      if (teamA.length !== 2 || teamB.length !== 2) { alert('Indica los 2 jugadores por equipo.'); return; }
+      const rounds = collectRounds();
+      const { totalA:tA, totalB:tB } = calcTotals(rounds);
+      const objetivoNum = Number(pModalidad.value);
+      if (tA < objetivoNum && tB < objetivoNum) { if(!confirm('Nadie alcanzó el objetivo. ¿Guardar igualmente?')) return; }
+      const m = {
+        id: uid(),
+        date: fmtDate(pFecha.value || new Date()),
+        table: pMesa.value.trim(),
+        modality: Number(pModalidad.value),
+        teamA, teamB,
+        rounds,
+        lisa: !!pLisa.checked,
+        duration: null
+      };
+      matches.push(m); save();
+      alert('Partida guardada en el historial.');
+      resetPartida();
+      renderHistorial();
+    });
+
+    // ------- RANKING -------
+    function* playersFromMatch(m) { for (const p of (m.teamA||[])) yield { name: canonName(p), side:'A' }; for (const p of (m.teamB||[])) yield { name: canonName(p), side:'B' }; }
+
+    function renderRanking() {
+      const tbody = document.getElementById('rankingBody');
+      const minR = Number(document.getElementById('minRondas').value||0);
+      const d1 = document.getElementById('rDesde').value;
+      const d2 = document.getElementById('rHasta').value;
+      const mod = document.getElementById('rModalidad').value;
+
+      const filtered = matches.filter(m => {
+        if (d1 && fmtDate(m.date) < d1) return false;
+        if (d2 && fmtDate(m.date) > d2) return false;
+        if (mod && String(m.modality) !== String(mod)) return false;
+        return true;
+      });
+
+      const map = new Map(); // name -> stats
+      filtered.forEach(m => {
+        const { totalA, totalB } = calcTotals(m.rounds||[]);
+        const win = totalA === totalB ? '-' : (totalA > totalB ? 'A' : 'B');
+        const rds = m.rounds?.length || 0;
+        for (const {name, side} of playersFromMatch(m)) {
+          if (!map.has(name)) map.set(name, { name, played:0, wins:0, losses:0 });
+          const s = map.get(name);
+          s.played += 1;
+          if (win !== '-') { if (win === side) s.wins += 1; else s.losses += 1; }
+        }
+      });
+
+      let rows = Array.from(map.values());
+      rows = rows.filter(s => (s.wins + s.losses) >= 1); // al menos una partida
+      rows.sort((a,b) => {
+        const pa = a.wins/(a.wins+a.losses||1), pb = b.wins/(b.wins+b.losses||1);
+        return pb - pa || b.wins - a.wins;
+      });
+
+      tbody.innerHTML='';
+      if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="muted">Sin datos.</td></tr>'; return; }
+      rows.forEach((s,i) => {
+        const total = s.wins + s.losses;
+        const pct = (s.wins/(total||1))*100;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${s.name}</td>
+          <td>${s.wins}</td>
+          <td>${s.losses}</td>
+          <td>${total}</td>
+          <td>${pct.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    document.getElementById('recalcRanking').addEventListener('click', renderRanking).addEventListener('click', renderRanking);
+
+    // ------- ALIASES -------
+    const aliasBody = document.getElementById('aliasBody');
+    function renderAliases() {
+      aliasBody.innerHTML = '';
+      const entries = Object.entries(aliases);
+      if (!entries.length) { aliasBody.innerHTML = '<tr><td colspan="3" class="muted">(Sin alias)</td></tr>'; return; }
+      entries.forEach(([k,v]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${k}</td><td>${v}</td><td class="right"><button class="ghost" data-del="${k}">Quitar</button></td>`;
+        tr.querySelector('button').addEventListener('click', () => { delete aliases[k]; localStorage.setItem(STORAGE.aliases, JSON.stringify(aliases)); renderAliases(); renderHistorial(); renderRanking(); });
+        aliasBody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('addAlias').addEventListener('click', () => {
+      const k = document.getElementById('aliasKey').value.trim();
+      const v = document.getElementById('aliasValue').value.trim();
+      if (!k || !v) { alert('Completa alias y nombre canónico.'); return; }
+      aliases[k] = v;
+      localStorage.setItem(STORAGE.aliases, JSON.stringify(aliases));
+      document.getElementById('aliasKey').value = '';
+      document.getElementById('aliasValue').value = '';
+      renderAliases();
+      renderHistorial();
+      renderRanking();
+    });
+
+    document.getElementById('clearAliases').addEventListener('click', () => {
+      if (!confirm('¿Borrar todos los alias?')) return;
+      aliases = {};
+      localStorage.setItem(STORAGE.aliases, JSON.stringify(aliases));
+      renderAliases(); renderHistorial(); renderRanking();
+    });
+
+    // ------- IMPORT / EXPORT -------
+    function toCSV() {
+      const header = ['id','date','table','modality','teamA_p1','teamA_p2','teamB_p1','teamB_p2','rounds','totalA','totalB','winner','lisa'];
+      const lines = [header.join(',')];
+      matches.forEach(m => {
+        const { totalA, totalB } = calcTotals(m.rounds||[]);
+        const rounds = (m.rounds||[]).map(r => `${r.a}-${r.b}`).join(';');
+        const row = [m.id, fmtDate(m.date), (m.table||''), m.modality, (m.teamA?.[0]||''), (m.teamA?.[1]||''), (m.teamB?.[0]||''), (m.teamB?.[1]||''), rounds, totalA, totalB, matchWinner(m), m.lisa? 'true':'false'];
+        lines.push(row.map(x => String(x).replaceAll('"','""')).map(x => /[",\n]/.test(x)?`"${x}"`:x).join(','));
+      });
+      return lines.join('\n');
+    }
+
+    function download(filename, content, mime='text/plain') {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content],{type:mime})); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+      download(`domino_historial_${fmtDate(new Date())}.csv`, toCSV(), 'text/csv');
+    });
+
+    document.getElementById('backupBtn').addEventListener('click', () => {
+      download(`domino_respaldo_${fmtDate(new Date())}.json`, JSON.stringify({ matches, aliases, clubName }, null, 2), 'application/json');
+    });
+
+    document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+    document.getElementById('importFile').addEventListener('change', onImportFile);
+
+    function onImportFile(e) {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          if (file.name.endsWith('.json')) {
+            const data = JSON.parse(reader.result);
+            if (Array.isArray(data.matches)) matches = data.matches; else if (Array.isArray(data)) matches = data; else throw new Error('JSON inválido');
+            if (data.aliases) { aliases = data.aliases; localStorage.setItem(STORAGE.aliases, JSON.stringify(aliases)); }
+            if (data.clubName) { clubName = data.clubName; localStorage.setItem(STORAGE.club, clubName); document.getElementById('clubNameTag').textContent = clubName; }
+          } else { // CSV
+            const rows = csvParse(String(reader.result));
+            // Espera encabezados estándar (ver plantilla)
+            const idx = Object.fromEntries(rows[0].map((h,i)=>[h.trim(), i]));
+            for (let i=1;i<rows.length;i++) {
+              const r = rows[i]; if (!r || !r.length) continue;
+              const rounds = (r[idx.rounds]||'').split(';').filter(Boolean).map(p=>{ const [a,b]=p.split('-'); return { a:Number(a)||0, b:Number(b)||0 }; });
+              const m = {
+                id: r[idx.id] || uid(),
+                date: fmtDate(r[idx.date]||new Date()),
+                table: r[idx.table] || '',
+                modality: Number(r[idx.modality]||100),
+                teamA: [canonName(r[idx.teamA_p1]||''), canonName(r[idx.teamA_p2]||'')].filter(Boolean),
+                teamB: [canonName(r[idx.teamB_p1]||''), canonName(r[idx.teamB_p2]||'')].filter(Boolean),
+                rounds,
+                lisa: String(r[idx.lisa]||'').toLowerCase()==='true'
+              };
+              matches.push(m);
+            }
+          }
+          save();
+          renderHistorial(); renderRanking(); renderAliases();
+          alert('Datos importados correctamente.');
+        } catch (err) {
+          console.error(err); alert('No se pudo importar el archivo. Revisa el formato.');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function csvParse(text) {
+      // Sencillo parser CSV que soporta comillas
+      const rows = []; let row = []; let field=''; let q=false;
+      for (let i=0;i<text.length;i++) {
+        const c=text[i];
+        if (q) {
+          if (c==='"') {
+            if (text[i+1]==='"') { field+='"'; i++; } else { q=false; }
+          } else field+=c;
+        } else {
+          if (c==='"') q=true; else if (c===',') { row.push(field); field=''; }
+          else if (c==='\n' || c==='\r') { if (field!=='' || row.length) { row.push(field); rows.push(row); row=[]; field=''; } }
+          else field+=c;
+        }
+      }
+      if (field!=='' || row.length) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    // ------- RESET -------
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!confirm('Esto borrará partidas, alias y nombre del club. ¿Continuar?')) return;
+      localStorage.removeItem(STORAGE.matches);
+      localStorage.removeItem(STORAGE.aliases);
+      localStorage.removeItem(STORAGE.club);
+      matches = []; aliases = { ...DEFAULT_ALIASES }; clubName = 'Tu Club';
+      document.getElementById('clubNameTag').textContent = clubName;
+      renderHistorial(); renderRanking(); renderAliases(); resetPartida();
+    });
+
+    // Inicialización
+    resetPartida();
+    renderHistorial();
+    renderAliases();
+
+    // Acceso rápido: escribir nombre de club cambiando el tag
+    document.getElementById('clubNameTag').addEventListener('click', () => {
+      const n = prompt('Nombre del club para mostrar en la cabecera:', clubName);
+      if (!n) return; clubName = n.trim() || 'Tu Club'; localStorage.setItem(STORAGE.club, clubName); document.getElementById('clubNameTag').textContent = clubName;
+    });
+  </script>
+</body>
+</html>
